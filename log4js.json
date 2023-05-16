@@ -1,0 +1,22 @@
+{
+    "appenders": {
+        "file": {
+            "type": "file",
+            "filename": "logs/log.txt",
+            "maxLogSize": 10485760,
+            "backups": 3,
+            "layout": {
+                "type": "pattern",
+                "pattern": "%[%d{ISO8601} [%p] %c - %] %m"
+            }
+        }
+    },
+    "categories": {
+        "default": {
+            "appenders": [
+                "file"
+            ],
+            "level": "info"
+        }
+    }
+}
