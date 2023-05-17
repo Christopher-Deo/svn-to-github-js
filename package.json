@@ -1,0 +1,16 @@
+{
+  "name": "svn-to-github",
+  "version": "1.0.0",
+  "description": "Program to automate the migration from SVN to GitHub VCS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Christopher Deo",
+  "license": "ISC",
+  "dependencies": {
+    "@octokit/rest": "github:octokit/rest.js",
+    "log4js": "^6.9.1",
+    "svn": "^0.4.0"
+  }
+}
