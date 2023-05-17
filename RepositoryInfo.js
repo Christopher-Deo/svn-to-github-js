@@ -40,4 +40,4 @@ class RepositoryInfo {
 
 }
 
-export default RepositoryInfo; 
+module.exports = RepositoryInfo; 

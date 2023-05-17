@@ -1,21 +1,13 @@
-<<<<<<< HEAD
-import { RepositoryInfo } from './RepositoryInfo';
-
-const RepositoryInfo = require('./RepositoryInfo').default;
-=======
-import RepositoryInfo from './RepositoryInfo';
-
-const { execSync } = require('child_process');
->>>>>>> d4d441d0fbca01228ce757db2b6d7457665a7594
+const RepositoryInfo = require('./RepositoryInfo');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
-const { exc, exec, execSync } = require('child_process');
+const { exec } = require('child_process');
 const log4js = require('log4js');
 
 const repositoryInfo = new RepositoryInfo();
 
-//Setting up logging for project
+// Setting up logging for the project
 const logDirectory = 'logs';
 if (!fs.existsSync(logDirectory)) {
     fs.mkdirSync(logDirectory);
@@ -24,41 +16,34 @@ const logger = log4js.configure('log4js.json').getLogger();
 // Usage
 logger.info('Logging directory created:', logDirectory);
 
-
-//Define the paths to the executables
+// Define the paths to the executables
 const GIT_BASH = "\"c:/Program Files/Git/git-bash.exe\"";
 const BIN_BASH = "\"c:/Program Files/Git/bin/bash.exe\"";
 const GIT = "c:/Program Files/Git/bin/git.exe";
+// Define the path to the shell script
+const scriptPath = "./resources/github-shell-scripts";
 
-
-//Get the system defined temp directory
+// Get the system-defined temp directory
 const tempDir = os.tmpdir();
-//Generate a unique directory name
+// Generate a unique directory name
 const tempDirName = "Github-JS";
 
-//Create  the temp directory
+// Create the temp directory
 const tempDirPath = path.join(tempDir, tempDirName);
 fs.mkdirSync(tempDirPath);
 
-<<<<<<< HEAD
 const targetDirectory = path.join(tempDirPath, repositoryInfo.svnRepoName);
-=======
-const targetDirectory = path.join(tempDirPath, RepositoryInfo.svnRepoName);
->>>>>>> d4d441d0fbca01228ce757db2b6d7457665a7594
 fs.mkdirSync(targetDirectory);
 
 console.log('Temporary directory created at: ' + tempDirPath);
 console.log("Target Directory is " + targetDirectory);
 logger.info('Temporary directory created at: ' + tempDirPath);
 
-
-
-//Building the Map of the files to be copied
+// Building the Map of the files to be copied
 function byStream() {
-<<<<<<< HEAD
     const map = new Map();
-    const filePath = "./svn-to-github-js\resources\passwords-projects-names.csv";
-    const fileLines = fs.readFileSync(filePath, 'UTF-8'.split('\n').slice(1));
+    const filePath = "./svn-to-github-js/resources/passwords-projects-names.csv";
+    const fileLines = fs.readFileSync(filePath, 'UTF-8').split('\n').slice(1);
 
     fileLines.forEach((line) => {
         if (line.includes(',')) {
@@ -69,9 +54,10 @@ function byStream() {
 
                 repositoryInfo.setSvnRepoName(svnRepoName);
                 repositoryInfo.setGitHubName(gitHubName);
-            };
-            map.set(svnRepoName, gitHubName);
-            console.log(`snvRepoName = ${repository.getSvnRepoName()} and gitHubName = ${repository.getGitHubName()}`);
+
+                map.set(svnRepoName, gitHubName);
+                console.log(`svnRepoName = ${repositoryInfo.getSvnRepoName()} and gitHubName = ${repositoryInfo.getGitHubName()}`);
+            }
         } else {
             console.warn("Skipping " + line);
             logger.info("Skipping " + line);
@@ -83,18 +69,17 @@ function byStream() {
 function migrateProjects() {
     try {
         const map = byStream();
-        for (const repositoryInfo of map.values) {
-            checkForStartOfGitHubTag(repositoryInfo);
+        for (const repositoryInfo of map.values()) {
             if (checkForStartOfGitHubTag(repositoryInfo)) {
                 continue;
             } else {
                 console.log("Processing " + repositoryInfo.getSvnRepoName());
                 const tempDirsLocation = fs.realpathSync(os.tmpdir());
-                const repoDirName = path.join(tempDirsLocation, "Github", repositoryInfo.getGithubName());
+                const repoDirName = path.join(tempDirsLocation, "Github", repositoryInfo.getGitHubName());
                 fs.mkdirSync(repoDirName, { recursive: true });
                 const targetDirectory = repoDirName.replace(/\\/g, "/");
 
-                //calling methods for the migrations
+                // Calling methods for the migrations
                 gitSvnClone(repositoryInfo, targetDirectory);
                 createGitHubTagsFromSvn(repositoryInfo, repoDirName);
                 listGitHubTags(repositoryInfo, repoDirName);
@@ -112,26 +97,26 @@ function migrateProjects() {
         }
     } catch (error) {
         console.error("Error processing file " + error + ".");
-        logger.error("Error processing " + repositoryInfo.getGithubName() + " . Error message: " + error);
+        logger.error("Error processing " + repositoryInfo.getGitHubName() + " . Error message: " + error);
     }
     console.log("done");
     logger.info("done");
 }
 
 function gitSvnClone(repositoryInfo, targetDirectory) {
-    logger.info(`Cloning ${repositoryInfo.getSvnRepoName()} from SVN to GitHub repo ${repositoryInfo.getGithubName()}`);
-    console.log(`Cloning ${repositoryInfo.getSvnRepoName()} from SVN to GitHub repo ${repositoryInfo.getGithubName()}`);
+    logger.info("Cloning " + `${ repositoryInfo.getSvnRepoName()}` + " from SVN to GitHub repo" +` ${repositoryInfo.getGitHubName()}`);
+    console.log("Cloning " + `${repositoryInfo.getSvnRepoName()}` + " from SVN to GitHub repo " + `${repositoryInfo.getGitHubName()}`);
 
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=./src/main/resources/authors.txt ` +
-        `${repositoryInfo.getSvnUrl()}` + " " + `${targetDirectory}`;
-
-    const processBuilder = exec(`$GIT_BASH} -c "${gitCommand}"`, (error, stdout, stderr) => {
+    const gitCommand = `git svn clone -s - t tags - b branches - T trunk--log - window - size=5000 --authors - file=./src/main / resources / authors.txt 
+        ${repositoryInfo.getSvnUrl()} ${ targetDirectory}`;
+    const command = `${GIT_BASH} -c "${gitCommand}"`;
+    exec(command, (error, stdout, stderr) => {
         if (error) {
-            console.error("Cloning repository stderr: " = `${stderr}`);
+            console.error("Cloning repository stderr: " + stderr);
             return;
         }
         if (stderr) {
-            console.error("Cloning repository stderr: " + ` ${stderr}`);
+            console.error("Cloning repository stderr: " + stderr);
             return;
         }
         console.log("Cloning complete for " + repositoryInfo.getGithubName());
@@ -139,105 +124,29 @@ function gitSvnClone(repositoryInfo, targetDirectory) {
     });
 }
 
-
-
 function createGitIgnoreFile(repositoryInfo, repoDirName) {
-    console.log("Creating .gitignore file for: " + repositoryInfo.getGithubName());
-=======
-   const map = new Map();
-   const filePath = "./svn-to-github-js\resources\passwords-projects-names.csv";
-const fileLines = fs.readFileSync(filePath, 'UTF-8'.split('\n').slice(1));
+    console.log("Creating .gitignore file for: " + repositoryInfo.getGitHubName());
 
-fileLines.forEach((line) =>{
-    if(line.includes(',')){
-        const keyValuePair = line.split(',');
-        if(keyValuePair.length >=2) {
-            const svnRepoName = keyValuePair[0];
-            const gitHubName = keyValuePair[1];
-            const RepositoryInfo = new RepositoryInfo();
-            RepositoryInfo.setSvnRepoName(svnRepoName);
-            RepositoryInfo.setGitHubName(gitHubName);
-        };
-        map.set(svnRepoName, gitHubName);
-        console.log(`snvRepoName = ${svnRepoName} and gitHubName = ${gitHubName}` );
-    }else{
-        console.warn("Skipping " + line);
-        logger.info("Skipping " + line);
-    }
+    const ignoreFilePath = path.join(targetDirectory, ".gitignore");
+}
+
+
+
+
+//====================== helper functions ======================
+
+function runGitBash() {
+    // Run the shell script using Git Bash
+const command = `${gitBashPath} "${scriptPath}"`;
+exec(command, (error, stdout, stderr) => {
+  if (error) {
+    console.error('Error:', error.message);
+    return;
+  }
+  if (stderr) {
+    console.error('Script execution error:', stderr);
+    return;
+  }
+  console.log('Script executed successfully');
 });
-    return map;
 }
-
-function migrateProjects (){
-    try{
-        const map = byStream();
-        for(const repositoryInfo of map.values){
-            checkForStartOfGitHubTag(RepositoryInfo);
-            if(checkForStartOfGitHubTag(RepositoryInfo)){
-                continue;
-            }else{
-                console.log("Processing " + RepositoryInfo.getSvnRepoName());
-                const tempDirsLocation = fs.realpathSync(os.tmpdir());
-                const repoDirName = path.join(tempDirsLocation, "Github", RepositoryInfo.getGithubName());
-                fs.mkdirSync(repoDirName, {recursive: true});
-                const targetDirectory = repoDirName.replace(/\\/g, "/");
-            
-            //calling methods for the migrations
-            gitSvnClone(RepositoryInfo, targetDirectory);
-            createGitHubTagsFromSvn(RepositoryInfo, repoDirName);
-            listGitHubTags(RepositoryInfo, repoDirName);
-            createGitIgnoreFile(RepositoryInfo, repoDirName);
-            createRepository(RepositoryInfo);
-            addRemoteOrigin(RepositoryInfo, path.of(targetDirectory));
-            updatePomFile(RepositoryInfo, targetDirectory, repoDirName);
-            pushToGitHub(repoDirName);
-            createStartOfGitHubTag(RepositoryInfo, repoDirName);
-            pushTags(RepositoryInfo, repoDirName);
-            gitStatus(RepositoryInfo, repoDirName);
-            console.log("Migration of " + RepositoryInfo.getSvnRepoName() + " completed.");
-            logger.info("Migration of " + RepositoryInfo.getSvnRepoName() + " completed.");         
-            }
-                }
-            }catch(error){
-                console.error("Error processing file " + error + ".");
-                logger.error("Error processing " + RepositoryInfo.getGithubName() + " . Error message: "+ error);
-                }
-                console.log("done");
-                logger.info("done");
-            }
-
-function gitSvnClone(RepositoryInfo, targetDirectory){
-    logger.info(`Cloning ${RepositoryInfo.getSvnRepoName()} from AVN to GitHub repo ${RepositoryInfo.getGithubName()}`);
-    console.log(`Cloning ${RepositoryInfo.getSvnRepoName()} from AVN to GitHub repo ${RepositoryInfo.getGithubName()}`);
-
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=./src/main/resources/authors.txt ` +
-    `${RepositoryInfo.getSvnUrl()}` + " " + `${targetDirectory}`;
-
-    const processBuilder = exec(`$GIT_BASH} -c "${gitCommand}"` , (error, stdout, stderr) =>{
-        if(error){
-            console.error("Cloning repository stderr: " = `${stderr}`);
-            return;
-        }
-        if(stderr){
-            console.error("Cloning repository stderr: " +` ${stderr}`);
-            return;
-        }
-        console.log("Cloning complete for " + RepositoryInfo.getGithubName());
-        logger.info("Cloning complete for " + RepositoryInfo.getGithubName());
-            })
-        }
-
-
- 
-function createGitIgnoreFile(RepositoryInfo, repoDirName){
-    console.log("Creating .gitignore file for: " + RepositoryInfo.getGithubName());
->>>>>>> d4d441d0fbca01228ce757db2b6d7457665a7594
-
-    const ignoreFilePath = path.join(targetDirectory, "/gitignore");
-}
-
-
-
-
-
-//====================== Helper Functions ============================
