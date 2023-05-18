@@ -8,8 +8,10 @@
   },
   "author": "Christopher Deo",
   "license": "ISC",
+  
   "dependencies": {
-    "@octokit/rest": "github:octokit/rest.js",
+    "axios": "^1.4.0",
+    "dotenv": "^16.0.3",
     "log4js": "^6.9.1",
     "svn": "^0.4.0"
   }

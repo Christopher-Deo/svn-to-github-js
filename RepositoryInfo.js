@@ -1,17 +1,17 @@
 class RepositoryInfo {
     constructor(svnRepoName, svnUrl, gitHubName, gitHubUrl) {
-        this.svnRepoName = this.svnRepoName;
-        this.svnUrl = this.svnUrl;
-        this.gitHubName = this.gitHubName;
-        this.gitHubUrl = this.gitHubUrl;
+        this.svnRepoName = svnRepoName;
+        this.svnUrl = svnUrl;
+        this.gitHubName = gitHubName;
+        this.gitHubUrl = gitHubUrl;
     }
 
     getSvnRepoName() {
-        return this.svnProjectName;
+        return this.svnRepoName;
     }
 
-    setSvnRepoName() {
-        return this.svnRepoName;
+    setSvnRepoName(svnRepoName) {
+        this.svnRepoName = svnRepoName;
     }
 
     getSvnUrl() {
@@ -26,8 +26,8 @@ class RepositoryInfo {
         return this.gitHubName;
     }
 
-    setGitHubName() {
-        return this.gitHubName;
+    setGitHubName(gitHubName) {
+        this.gitHubName = gitHubName;
     }
 
     getGitHubUrl() {
@@ -35,9 +35,8 @@ class RepositoryInfo {
     }
 
     setGitHubUrl() {
-        return "https://github.com/Deo-Test-Org" + this.getGitHubName + ".git";
+        return "https://github.com/Deo-Test-Org/" + this.gitHubName + ".git";
     }
-
 }
 
 module.exports = RepositoryInfo; 
