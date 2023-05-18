@@ -35,7 +35,7 @@ class RepositoryInfo {
     }
 
     setGitHubUrl() {
-        return "https://github.com/Deo-Test-Org/" + this.gitHubName + ".git";
+        return "https://github.com/cd-test-org/" + this.gitHubName + ".git";
     }
 }
 
