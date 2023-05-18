@@ -10,19 +10,34 @@ const log4js = require('log4js');
 
 const repositoryInfo = new RepositoryInfo();
 
-// Setting up logging for the project
 const logDirectory = 'logs';
 if (!fs.existsSync(logDirectory)) {
     fs.mkdirSync(logDirectory);
 }
-const logger = log4js.configure('log4js.json').getLogger();
+
+log4js.configure({
+    appenders: {
+        general: { type: 'file', filename: `${logDirectory}/log.txt` },
+        error: { type: 'file', filename: `${logDirectory}/error.log` }
+    },
+    categories: {
+        default: { appenders: ['general'], level: 'info' },
+        error: { appenders: ['error'], level: 'error' }
+    }
+});
+
+const logger = log4js.getLogger();
+const errorLogger = log4js.getLogger('error');
+
 // Usage
 logger.info('Logging directory created:', logDirectory);
+errorLogger.error('This is an error message.');
 
 // Define the paths to the executables
 const GIT_BASH = "\"c:/Program Files/Git/git-bash.exe\"";
 const BIN_BASH = "\"c:/Program Files/Git/bin/bash.exe\"";
 const GIT = "c:/Program Files/Git/bin/git.exe";
+
 // Define the path to the shell script
 const scriptPath = "./resources/github-shell-scripts";
 
@@ -84,7 +99,7 @@ function migrateProjects() {
                 // createGitHubTagsFromSvn(repositoryInfo, repoDirName);
                 // listGitHubTags(repositoryInfo, repoDirName);
                 // createGitIgnoreFile(repositoryInfo, repoDirName);
-                // createRepository(repositoryInfo);
+                createRepository(repositoryInfo);
                 // addRemoteOrigin(repositoryInfo, path.of(targetDirectory));
                 // updatePomFile(repositoryInfo, targetDirectory, repoDirName);
                 // pushToGitHub(repoDirName);
@@ -104,13 +119,6 @@ function migrateProjects() {
 }
 
 //##############################
-// Configure log4js
-log4js.configure({
-    appenders: { fileAppender: { type: 'file', filename: 'error.log' } },
-    categories: { default: { appenders: ['fileAppender'], level: 'error' } }
-});
-
-const errorLogger = log4js.getLogger();
 
 // GitHub organization and access token
 const orgName = 'cd-test-org';
