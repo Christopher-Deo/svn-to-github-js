@@ -12,15 +12,16 @@ const GIT_BASH = `"c:/Program Files/Git/git-bash.exe"`;
 const BIN_BASH = `"c:/Program Files/Git/bin/bash.exe"`;
 const GIT = `"c:/Program Files/Git/bin/git.exe"`;
 
-// Define the path to the shell script
+
 const scriptPath = "./resources/github-shell-scripts";
+const authorFile = "C:\Users\deoc\Coding Projects\svn-to-github-js-main\svn-to-github-js-main\resources\authors.txt";
 
 const org = "Deo-Test-Org/";
 const userCredentials = `${process.env.USER_CREDENTIALS}`;
 const accessToken = `${process.env.GITHUB_TOKEN}`
 const baseUrl = "https://api.github.com/";
 let svnRepoName, gitHubName;
-
+const svnUrl = `https://archimedes.crlcorp.com/davsvn/SVN/${svnRepoName}`
 const logDirectory = 'logs';
 if (!fs.existsSync(logDirectory)) {
     fs.mkdirSync(logDirectory);
@@ -46,7 +47,7 @@ errorLog.error('Logging file for error logging created.');
 // Get the system-defined temp directory
 const tempDirName = "Github-JS";
 const tempDirPath = path.join(os.tmpdir(), tempDirName);
-
+const targetDirectory = `${tempDirPath}/${gitHubName}`;
 // Create the temp directory if it doesn't exist
 if (!fs.existsSync(tempDirPath)) {
     fs.mkdirSync(tempDirPath);
@@ -56,9 +57,8 @@ log.info('tempDirsLocation:', tempDirsLocation);
 
 function mapBuilder() {
     const map = new Map();
-    const filePath = "/Users/christopherdeo/Coding Projects/svn-to-github-js/resources/password-projects-names.csv";
+    const filePath = "C:/Users/deoc/Coding Projects/svn-to-github-js-main/svn-to-github-js-main/resources/password-projects-names.csv";
     const fileLines = fs.readFileSync(filePath, 'UTF-8').split('\n').slice(1);
-
     fileLines.forEach((line) => {
         if (line.includes(',')) {
             const keyValuePair = line.split(',');
@@ -83,9 +83,12 @@ async function migrateProjects(svnRepoName, gitHubName) {
         
         for (const [svnRepoName, gitHubName] of map.entries()) {
                 log.info(`Processing ${svnRepoName}`);
-                createGitHubRepository(gitHubName);
+                
+                gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory)
+                
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info("Migration of " + gitHubName + " completed.");
+               
             }
         }
      catch (error) {
@@ -121,17 +124,17 @@ async function checkForStartOfGitHubTag(gitHubName) {
 // Function to create a GitHub repository
 async function createGitHubRepository(repoName) {
     const apiUrl = `${baseUrl}orgs/${org}repos`;
-
     try {
         const response = await axios.post(apiUrl, {
             name: repoName
         }, {
             headers: {
-                'Authorization': `Bearer ${accessToken}`,
+                'Authorization': `Bearer ${process.env.USER_CREDENTIALS}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
         if (response.status === 201) {
+            let response
             console.log(`Successfully created repository: ${gitHubName}`);
             log.info(`Successfully created repository: ${gitHubName}`);
         } else {
@@ -143,6 +146,20 @@ async function createGitHubRepository(repoName) {
         errorLog.error(`Error creating repository: ${gitHubName}`, error);
     }
 }
+
+function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
+    log.info("Cloning " + `${svnRepoName}` + " from SVN to GitHub repo" + ` ${gitHubName}`);
+    console.log("Cloning " + `${svnRepoName}` + " from SVN to GitHub repo " + `${gitHubName}`);
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
+    const command = `${GIT_BASH} -c "${gitCommand}"`;
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Cloning complete for ${gitHubName}`);
+            log.info(`Cloning complete for ${gitHubName}`);
+         }
+        
+    }
+    )}
 
 migrateProjects(svnRepoName, gitHubName);
 
