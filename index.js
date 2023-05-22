@@ -82,22 +82,18 @@ async function migrateProjects(svnRepoName, gitHubName) {
         const map = mapBuilder();
         
         for (const [svnRepoName, gitHubName] of map.entries()) {
-            checkForStartOfGitHubTag(gitHubName);
-            if (await checkForStartOfGitHubTag(gitHubName) === true) {
-                continue;
-            } else {
                 log.info(`Processing ${svnRepoName}`);
                 createGitHubRepository(gitHubName);
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info("Migration of " + gitHubName + " completed.");
             }
         }
-    } catch (error) {
+     catch (error) {
         console.error("Error processing file " + error + ".");
         errorLog.error(`Error processing ${gitHubName}. Error message: ${error}`);
     }
-    console.log("done");
-    log.info("done");
+    console.log("done processing files");
+    log.info("done processing files");
 }
 
 async function checkForStartOfGitHubTag(gitHubName) {
@@ -105,7 +101,7 @@ async function checkForStartOfGitHubTag(gitHubName) {
     try {
         const response = await axios.get(url, {
             headers: {
-                'Authorization': `Basic ${Buffer.from(`${userCredentials}`).toString('base64')}`,
+                'Authorization': `Basic ${Buffer.from(`${accessToken}`).toString('base64')}`,
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
@@ -124,7 +120,7 @@ async function checkForStartOfGitHubTag(gitHubName) {
 
 // Function to create a GitHub repository
 async function createGitHubRepository(repoName) {
-    const apiUrl = 'https://api.github.com/user/repos';
+    const apiUrl = `${baseUrl}orgs/${org}repos`;
 
     try {
         const response = await axios.post(apiUrl, {
@@ -135,7 +131,6 @@ async function createGitHubRepository(repoName) {
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
-
         if (response.status === 201) {
             console.log(`Successfully created repository: ${gitHubName}`);
             log.info(`Successfully created repository: ${gitHubName}`);
@@ -148,6 +143,7 @@ async function createGitHubRepository(repoName) {
         errorLog.error(`Error creating repository: ${gitHubName}`, error);
     }
 }
+
 migrateProjects(svnRepoName, gitHubName);
 
 
