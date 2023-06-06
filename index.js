@@ -13,23 +13,24 @@ const { createTempDirectory } = require('./createTempDirectory');
 const { spawn } = require('child_process');
 
 let bashProcess; // Global variable to store the reference to the bash.exe process
-const gitBashPath = "XXXXXXXXXXX";
+const gitBashPath = "C:/";
 
 const org = process.env.org;
-const svnURL = process.env.SVN_URL;
+const svnURL = process.env.SVN_URL + svnRepoName;
 
 function mapBuilder() {
     const map = new Map();
     const filePath = path.join(__dirname, 'resources', 'password-projects-names.csv');
     const fileLines = fs.readFileSync(filePath, 'UTF-8').split('\n').slice(1);
+    let svnRepoName, gitHubName, team;
 
     fileLines.forEach((line) => {
         if (line.includes(',')) {
             const keyValuePair = line.split(',');
             if (keyValuePair.length >= 3) {
-                const svnRepoName = keyValuePair[0].trim();
-                const gitHubName = keyValuePair[1].trim();
-                const team = keyValuePair[2].trim();
+                svnRepoName = keyValuePair[0].trim();
+                gitHubName = keyValuePair[1].trim();
+                team = keyValuePair[2].trim();
 
                 const repositoryInfo = new RepositoryInfo(gitHubName, team);
                 map.set(svnRepoName, repositoryInfo);
@@ -54,10 +55,9 @@ async function migrateProjects() {
             try {
                 const gitHubName = repositoryInfo.gitHubName;
                 const authorFile = 'authors.txt';
-                const svnUrl = `${svnURL}${svnRepoName}`;
                 const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
 
-                await gitSvnClone(gitHubName, svnUrl, targetDirectory);
+                await gitSvnClone(svnRepoName, gitHubName, authorFile, svnURL, targetDirectory);
 
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info(`Migration of ${gitHubName} completed.`);
@@ -75,11 +75,10 @@ async function migrateProjects() {
     log.info('Done processing files.');
 }
 
-
-async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
-    log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
-    console.log(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnUrl} ${targetDirectory}`;
+async function gitSvnClone(svnRepoName, gitHubName, svnURL, targetDirectory) {
+    log.info(`Cloning ${svnURL} from SVN to GitHub repo ${gitHubName}`);
+    console.log(`Cloning ${svnURL} from SVN to GitHub repo ${gitHubName}`);
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnURL} ${targetDirectory}`;
 
     // Spawn the bash.exe process if it's not already created
     if (!bashProcess) {
@@ -92,13 +91,13 @@ async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
     return new Promise((resolve, reject) => {
         bashProcess.on('exit', (code) => {
             if (code === 0) {
-                console.log(`Cloning complete for ${svnUrl}`);
-                log.info(`Cloning complete for ${svnUrl}`);
+                console.log(`Cloning complete for ${svnURL}`);
+                log.info(`Cloning complete for ${svnURL}`);
                 resolve();
             } else {
-                console.error(`Error cloning ${svnUrl}`);
-                errorLog.error(`Error cloning ${svnUrl}`);
-                reject(new Error(`Error cloning ${svnUrl}`));
+                console.error(`Error cloning ${svnURL}`);
+                errorLog.error(`Error cloning ${svnURL}`);
+                reject(new Error(`Error cloning ${svnURL}`));
             }
         });
     });
