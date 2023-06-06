@@ -28,9 +28,9 @@ function mapBuilder() {
         if (line.includes(',')) {
             const keyValuePair = line.split(',');
             if (keyValuePair.length >= 3) {
-                const svnRepoName = keyValuePair[0].trim();
-                const gitHubName = keyValuePair[1].trim();
-                const team = keyValuePair[2].trim();
+                svnRepoName = keyValuePair[0].trim();
+               gitHubName = keyValuePair[1].trim();
+               team = keyValuePair[2].trim();
 
                 const repositoryInfo = new RepositoryInfo(gitHubName, team);
                 map.set(svnRepoName, repositoryInfo);
@@ -49,7 +49,7 @@ async function migrateProjects() {
     try {
         const map = mapBuilder();
         const tempDirectoryPath = createTempDirectory();
-        
+
         for (const [svnRepoName, repositoryInfo] of map) {
             log.info(`Processing ${svnRepoName}`);
             try {
@@ -58,7 +58,7 @@ async function migrateProjects() {
                 const svnUrl = `${process.env.SVN_URL}${svnRepoName}`;
                 const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
 
-                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory);
+                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory, svnRepoName);
 
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info(`Migration of ${gitHubName} completed.`);
@@ -76,7 +76,7 @@ async function migrateProjects() {
     log.info('Done processing files.');
 }
 
-async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
+async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory, svnRepoName) {
     log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
     console.log(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
     const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnUrl} ${targetDirectory}`;
@@ -99,9 +99,17 @@ async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
             if(code !== 0){
                 console.error(`Git clone process exited with code ${code}`);
                 reject(new Error(`Git clone process exited with code ${code}`));
+            }else{
+                console.log("Git clone process exited successfully");
+                resolve();
             }
-        });
     });
+
+    bashProcess.on("error", (error) =>{
+        console.error(`Error event: ${error}`);
+        reject(error);
+    })
+    })
 }
 
 
