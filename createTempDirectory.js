@@ -1,22 +1,22 @@
 const os = require('os');
 const fs = require('fs');
 
-function createTempDirectory(repositoryInfo) {
+function createTempDirectory() {
     const tempDir = os.tmpdir(); // Get the system's default temp directory
 
     // Generate a unique directory name
     const tempDirectoryName = "Github_Migration";
 
-    // Create the temp directory
+    // Create the temp directory if it doesn't exist
     const tempDirectoryPath = `${tempDir}/${tempDirectoryName}`;
-    fs.mkdirSync(tempDirectoryPath);
+    if (!fs.existsSync(tempDirectoryPath)) {
+        fs.mkdirSync(tempDirectoryPath);
+    }
 
-    // Create repository directories
-    const githubRepoName = repositoryInfo.getGitHubName(); // Assuming you have a method to get the GitHub repository name
-    const repoDirectoryPath = `${tempDirectoryPath}/${githubRepoName}`;
-    fs.mkdirSync(repoDirectoryPath);
+    // Replace backslashes with forward slashes
+    const normalizedPath = tempDirectoryPath.replace(/\\/g, '/');
 
-    return tempDirectoryPath;
+    return normalizedPath;
 }
 
 module.exports = {

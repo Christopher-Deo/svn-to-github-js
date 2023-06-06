@@ -10,15 +10,14 @@ const path = require('path');
 const { exec } = require('child_process');
 const log4js = require('log4js');
 const { config } = require('dotenv');
-const tempDirectory = require('./createTempDirectory');
+const { createTempDirectory } = require('./createTempDirectory');
 
-let svnRepoName, gitHubName, team;
- const org = `${process.env.org}`;
-const svnURL = process.env.SVN_URL + svnRepoName;
+const org = process.env.org;
+const svnURL = process.env.SVN_URL;
 
 function mapBuilder() {
     const map = new Map();
-    const filePath = "/Users/christopherdeo/Coding Projects/svn-to-github-js/resources/password-projects-names.csv";
+    const filePath = '/Users/christopherdeo/Coding Projects/svn-to-github-js/resources/password-projects-names.csv';
     const fileLines = fs.readFileSync(filePath, 'UTF-8').split('\n').slice(1);
 
     fileLines.forEach((line) => {
@@ -28,85 +27,76 @@ function mapBuilder() {
                 const svnRepoName = keyValuePair[0].trim();
                 const gitHubName = keyValuePair[1].trim();
                 const team = keyValuePair[2].trim();
-                                              
+
                 const repositoryInfo = new RepositoryInfo(gitHubName, team);
                 map.set(svnRepoName, repositoryInfo);
                 console.log(`${svnRepoName} = ${JSON.stringify(repositoryInfo)}`);
             }
         } else {
-            log.warn("Skipping " + line);
-            console.log(" WARNING!!!! Skipping " + line);
+            log.warn('Skipping ' + line);
+            console.log(' WARNING!!!! Skipping ' + line);
         }
     });
-    console.log("My map is: ", map);
+    console.log('My map is: ', map);
     return map;
 }
 
-function migrateProjects() {
+async function migrateProjects() {
     try {
         const map = mapBuilder();
-        
-        map.forEach((repositoryInfo, svnRepoName) => {
+        const tempDirectoryPath = createTempDirectory();
+
+        for (const [svnRepoName, repositoryInfo] of map) {
             log.info(`Processing ${svnRepoName}`);
             try {
-                // gitSvnClone(repositoryInfo.gitHubName, authorFile, svnUrl, targetDirectory);
-                console.log(`Migration of ${repositoryInfo.gitHubName} completed.`);
-                log.info(`Migration of ${repositoryInfo.gitHubName} completed.`);
+                const gitHubName = repositoryInfo.gitHubName;
+                const authorFile = 'authors.txt';
+                const svnUrl = `${svnURL}${svnRepoName}`;
+                const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
+
+                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory);
+
+                console.log(`Migration of ${gitHubName} completed.`);
+                log.info(`Migration of ${gitHubName} completed.`);
             } catch (error) {
-                console.error(`Error processing ${repositoryInfo.gitHubName}: ${error}.`);
+                console.error(`Error processing ${repositoryInfo.gitHubName}: ${error}`);
                 errorLog.error(`Error processing ${repositoryInfo.gitHubName}. Error message: ${error}`);
             }
-        });
+        }
     } catch (error) {
-        console.error(`Error processing files: ${error}.`);
+        console.error(`Error processing files: ${error}`);
         errorLog.error(`Error processing files: ${error}`);
     }
 
-    console.log("Done processing files.");
-    log.info("Done processing files.");
+    console.log('Done processing files.');
+    log.info('Done processing files.');
 }
 
-async function checkForStartOfGitHubTag(gitHubName) {
-    const url = `${baseUrl}${org}${gitHubName}/git/refs/tags/Start-of-Github-VCS`;
-    try {
-        const response = await axios.get(url, {
-            headers: {
-                'Authorization': `Basic ${Buffer.from(`${accessToken}`).toString('base64')}`,
-                'Accept': 'application/vnd.github.v3+json'
+async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
+    log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
+    console.log(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
+    const command = `"${process.env.GIT_BASH}" -c "${gitCommand}"`;
+
+    return new Promise((resolve, reject) => {
+        exec(command, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Error cloning ${svnUrl}: ${error}`);
+                errorLog.error(`Error cloning ${svnUrl}. Error message: ${error}`);
+                reject(error);
+            } else {
+                console.log(`Cloning complete for ${svnUrl}`);
+                log.info(`Cloning complete for ${svnUrl}`);
+                resolve();
             }
         });
-        log.info('Start of Github VCS tag exists');
-        return true; // Tag exists
-    } catch (error) {
-        if (error.response && error.response.status === 404) {
-            log.info('Start of Github VCS tag does not exist');
-            return false; // Tag doesn't exist
-        } else {
-            errorLog.error(`Error checking tag for repository: ${gitHubName}`, error);
-            return null;
-        }
-    }
-}
-
-function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
-    log.info(`Cloning ${svnRepoName} from SVN to GitHub repo ${gitHubName}`);
-    console.log(`Cloning ${svnRepoName} from SVN to GitHub repo ${gitHubName}`);
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
-    const command = `"${GIT_BASH}" -c "${gitCommand}"`;
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`Error cloning ${svnRepoName}: ${error}`);
-            errorLog.error(`Error cloning ${svnRepoName}. Error message: ${error}`);
-        } else {
-            console.log(`Cloning complete for ${svnRepoName}`);
-            log.info(`Cloning complete for ${svnRepoName}`);
-        }
     });
 }
 
 // Function to create a GitHub repository
 async function createGitHubRepository(repoName) {
     const apiUrl = `${baseUrl}orgs/${org}repos`;
+
     try {
         const response = await axios.post(apiUrl, {
             name: repoName
@@ -116,25 +106,18 @@ async function createGitHubRepository(repoName) {
                 'Accept': 'application/vnd.github.v3+json'
             }
         });
+
         if (response.status === 201) {
-            let response;
-            console.log(`Successfully created repository: ${gitHubName}`);
-            log.info(`Successfully created repository: ${gitHubName}`);
+            console.log(`Successfully created repository: ${repoName}`);
+            log.info(`Successfully created repository: ${repoName}`);
         } else {
-            console.log(`Failed to create repository: ${gitHubName}`);
-            log.info(`Failed to create repository: ${gitHubName}`);
+            console.log(`Failed to create repository: ${repoName}`);
+            log.info(`Failed to create repository: ${repoName}`);
         }
     } catch (error) {
-        console.error(`Error creating repository: ${gitHubName}`, error);
-        errorLog.error(`Error creating repository: ${gitHubName}`, error);
+        console.error(`Error creating repository: ${repoName}`, error);
+        errorLog.error(`Error creating repository: ${repoName}`, error);
     }
 }
 
-
-migrateProjects(svnRepoName, gitHubName);
-
-
-
-
-
-
+migrateProjects();
