@@ -10,6 +10,10 @@ const { exec } = require('child_process');
 const log4js = require('log4js');
 const { config } = require('dotenv');
 const { createTempDirectory } = require('./createTempDirectory');
+const { spawn } = require('child_process');
+
+let bashProcess; // Global variable to store the reference to the bash.exe process
+const gitBashPath = "XXXXXXXXXXX";
 
 const org = process.env.org;
 const svnURL = process.env.SVN_URL;
@@ -53,7 +57,7 @@ async function migrateProjects() {
                 const svnUrl = `${svnURL}${svnRepoName}`;
                 const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
 
-                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory);
+                await gitSvnClone(gitHubName, svnUrl, targetDirectory);
 
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info(`Migration of ${gitHubName} completed.`);
@@ -75,19 +79,26 @@ async function migrateProjects() {
 async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
     log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
     console.log(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
-    const command = `"${process.env.GIT_BASH}" -c "${gitCommand}"`;
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnUrl} ${targetDirectory}`;
+
+    // Spawn the bash.exe process if it's not already created
+    if (!bashProcess) {
+        bashProcess = spawn('bash.exe', ['-c', gitCommand], { shell: true });
+    } else {
+        // If the bash.exe process already exists, send the git command to it
+        bashProcess.stdin.write(gitCommand + '\n');
+    }
 
     return new Promise((resolve, reject) => {
-        exec(command, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`Error cloning ${svnUrl}: ${error}`);
-                errorLog.error(`Error cloning ${svnUrl}. Error message: ${error}`);
-                reject(error);
-            } else {
+        bashProcess.on('exit', (code) => {
+            if (code === 0) {
                 console.log(`Cloning complete for ${svnUrl}`);
                 log.info(`Cloning complete for ${svnUrl}`);
                 resolve();
+            } else {
+                console.error(`Error cloning ${svnUrl}`);
+                errorLog.error(`Error cloning ${svnUrl}`);
+                reject(new Error(`Error cloning ${svnUrl}`));
             }
         });
     });
