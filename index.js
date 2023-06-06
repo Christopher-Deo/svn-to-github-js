@@ -16,7 +16,7 @@ let bashProcess; // Global variable to store the reference to the bash.exe proce
 const gitBashPath = "C:/";
 
 const org = process.env.org;
-const svnURL = process.env.SVN_URL + svnRepoName;
+// const svnURL = process.env.SVN_URL + svnRepoName;
 
 function mapBuilder() {
     const map = new Map();
@@ -28,9 +28,9 @@ function mapBuilder() {
         if (line.includes(',')) {
             const keyValuePair = line.split(',');
             if (keyValuePair.length >= 3) {
-                svnRepoName = keyValuePair[0].trim();
-                gitHubName = keyValuePair[1].trim();
-                team = keyValuePair[2].trim();
+                const svnRepoName = keyValuePair[0].trim();
+                const gitHubName = keyValuePair[1].trim();
+                const team = keyValuePair[2].trim();
 
                 const repositoryInfo = new RepositoryInfo(gitHubName, team);
                 map.set(svnRepoName, repositoryInfo);
@@ -49,15 +49,16 @@ async function migrateProjects() {
     try {
         const map = mapBuilder();
         const tempDirectoryPath = createTempDirectory();
-
+        
         for (const [svnRepoName, repositoryInfo] of map) {
             log.info(`Processing ${svnRepoName}`);
             try {
                 const gitHubName = repositoryInfo.gitHubName;
-                const authorFile = 'authors.txt';
+                const authorFile = "./resources/authors.txt";
+                const svnUrl = `${process.env.SVN_URL}${svnRepoName}`;
                 const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
 
-                await gitSvnClone(svnRepoName, gitHubName, authorFile, svnURL, targetDirectory);
+                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory);
 
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info(`Migration of ${gitHubName} completed.`);
@@ -75,33 +76,35 @@ async function migrateProjects() {
     log.info('Done processing files.');
 }
 
-async function gitSvnClone(svnRepoName, gitHubName, svnURL, targetDirectory) {
-    log.info(`Cloning ${svnURL} from SVN to GitHub repo ${gitHubName}`);
-    console.log(`Cloning ${svnURL} from SVN to GitHub repo ${gitHubName}`);
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnURL} ${targetDirectory}`;
+async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
+    log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
+    console.log(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file="./resources/authors.txt" ${svnUrl} ${targetDirectory}`;
+    const bashPath = process.env.GIT_BASH;
 
     // Spawn the bash.exe process if it's not already created
-    if (!bashProcess) {
-        bashProcess = spawn('bash.exe', ['-c', gitCommand], { shell: true });
-    } else {
-        // If the bash.exe process already exists, send the git command to it
-        bashProcess.stdin.write(gitCommand + '\n');
-    }
-
     return new Promise((resolve, reject) => {
-        bashProcess.on('exit', (code) => {
-            if (code === 0) {
-                console.log(`Cloning complete for ${svnURL}`);
-                log.info(`Cloning complete for ${svnURL}`);
+        bashProcess = exec(`"${bashPath}" -c "${gitCommand}"`, (error, stdout, stderr) =>{
+            if(error){
+                console.error(`Error cloning ${svnRepoName}: ${error}`);
+                errorLog.error(`Error cloning ${svnRepoName}. Error message: ${error}`)
+                reject(error);
+            }else{
+                console.log(`Cloning complete for  ${gitHubName}`);
+                log.info(`Cloning complete for ${gitHubName}`)
                 resolve();
-            } else {
-                console.error(`Error cloning ${svnURL}`);
-                errorLog.error(`Error cloning ${svnURL}`);
-                reject(new Error(`Error cloning ${svnURL}`));
+            }
+        });
+        bashProcess.on('exit', (code) =>{
+            if(code !== 0){
+                console.error(`Git clone process exited with code ${code}`);
+                reject(new Error(`Git clone process exited with code ${code}`));
             }
         });
     });
 }
+
+
 
 // Function to create a GitHub repository
 async function createGitHubRepository(repoName) {
