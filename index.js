@@ -88,6 +88,22 @@ async function checkForStartOfGitHubTag(gitHubName) {
     }
 }
 
+function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
+    log.info(`Cloning ${svnRepoName} from SVN to GitHub repo ${gitHubName}`);
+    console.log(`Cloning ${svnRepoName} from SVN to GitHub repo ${gitHubName}`);
+    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
+    const command = `"${GIT_BASH}" -c "${gitCommand}"`;
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`Error cloning ${svnRepoName}: ${error}`);
+            errorLog.error(`Error cloning ${svnRepoName}. Error message: ${error}`);
+        } else {
+            console.log(`Cloning complete for ${svnRepoName}`);
+            log.info(`Cloning complete for ${svnRepoName}`);
+        }
+    });
+}
+
 // Function to create a GitHub repository
 async function createGitHubRepository(repoName) {
     const apiUrl = `${baseUrl}orgs/${org}repos`;
@@ -114,20 +130,6 @@ async function createGitHubRepository(repoName) {
     }
 }
 
-function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
-    log.info("Cloning " + `${svnRepoName}` + " from SVN to GitHub repo" + ` ${gitHubName}`);
-    console.log("Cloning " + `${svnRepoName}` + " from SVN to GitHub repo " + `${gitHubName}`);
-    const gitCommand = `git svn clone -s -t tags -b branches -T trunk --log-window-size=5000 --authors-file=${authorFile} ${svnUrl} ${targetDirectory}`;
-    const command = `${GIT_BASH} -c "${gitCommand}"`;
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`Cloning complete for ${gitHubName}`);
-            log.info(`Cloning complete for ${gitHubName}`);
-        }
-
-    }
-    );
-}
 
 migrateProjects(svnRepoName, gitHubName);
 
