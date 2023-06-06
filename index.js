@@ -58,7 +58,9 @@ async function migrateProjects() {
                 const svnUrl = `${process.env.SVN_URL}${svnRepoName}`;
                 const targetDirectory = path.join(tempDirectoryPath, gitHubName.replace(/\\/g, '/'));
 
-                await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory, svnRepoName);
+                await (async function (svnRepoName) {
+                    await gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory, svnRepoName);
+                })(svnRepoName);
 
                 console.log(`Migration of ${gitHubName} completed.`);
                 log.info(`Migration of ${gitHubName} completed.`);
@@ -75,6 +77,7 @@ async function migrateProjects() {
     console.log('Done processing files.');
     log.info('Done processing files.');
 }
+
 
 async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory, svnRepoName) {
     log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
