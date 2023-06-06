@@ -1,7 +1,6 @@
 require('dotenv').config();
 const csv = require('csv-parser');
 const { log, errorLog } = require('./logging');
-const applicationProperties = require('./applicationProperties');
 const RepositoryInfo = require('./RepositoryInfo');
 const axios = require('axios');
 const os = require('os');
@@ -17,7 +16,7 @@ const svnURL = process.env.SVN_URL;
 
 function mapBuilder() {
     const map = new Map();
-    const filePath = '/Users/christopherdeo/Coding Projects/svn-to-github-js/resources/password-projects-names.csv';
+    const filePath = path.join(__dirname, 'resources', 'password-projects-names.csv');
     const fileLines = fs.readFileSync(filePath, 'UTF-8').split('\n').slice(1);
 
     fileLines.forEach((line) => {
@@ -71,6 +70,7 @@ async function migrateProjects() {
     console.log('Done processing files.');
     log.info('Done processing files.');
 }
+
 
 async function gitSvnClone(gitHubName, authorFile, svnUrl, targetDirectory) {
     log.info(`Cloning ${svnUrl} from SVN to GitHub repo ${gitHubName}`);
